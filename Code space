@@ -1,0 +1,541 @@
+//Block Retrieval: To get information about a block, you typically have a function that returns a block structure containing that block's details. It might look similar to this:
+
+function getBlock(uint index) public view returns (uint, uint, string memory, bytes32, bytes32) {
+    Block memory block = blockchain[index];
+    return (block.index, block.timestamp, block.data, block.previousHash, block.currentHash);
+}
+//Blockchain Length: To know the length of blockchain, the function will be like this:
+
+function getBlockchainLength() public view returns (uint) {
+   return blockchain.length;
+}
+
+//AI Blockchain contract, to get a basic block and do the comparison, we will call these methods in the checkBlockchainIntegrity() function as follows:
+
+// Get length of the basic blockchain
+uint basicBlockchainLength = basicBlockchain.getBlockchainLength();
+
+// Iterate over the basic and AI blockchain
+for (uint i = 0; i < basicBlockchainLength; i++) {
+
+   // Get the ith block of the basic blockchain
+   (uint indexBasic, uint timestampBasic, string memory dataBasic, bytes32 previousHashBasic, bytes32 currentHashBasic) = basicBlockchain.getBlock(i);
+
+   // Get the ith block of the AI blockchain
+   Block memory aiBlock = blockchainAI[i];
+
+   // Do the comparisons....
+}
+This assumes that basicBlockchain is an instance of the BasicBlockchain contract and that it exposes the mentioned getBlock and getBlockchainLength functions. Please adapt to our specific contract implementation.
+
+
+// migrations/2_deploy_contract.js
+var BasicBlockchain = artifacts.require("BasicBlockchain");
+
+module.exports = function(deployer) {
+  // deployment steps
+  deployer.deploy(BasicBlockchain);
+};
+
+
+
+//The checkBlockchainIntegrity() function iteratively checks each block on the AI blockchain against the Basic blockchain. It compares the data, currentHash, and previousHash (for blocks other than the genesis block). If the function finds a discrepancy, it immediately returns false, indicating that the blockchains do not match. If it successfully checks all the blocks without finding any discrepancies, it returns true.
+
+//Please ensure to replace BasicBlockchain.Block and basicBlockchain.blockchain() with appropriate method calls as per your Basic Blockchain contract implementation.
+
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.0 <0.9.0;
+
+contract BlockchainAI {
+    struct Block {
+        uint index;
+        uint timestamp;
+        string data;
+        bytes32 previousHash;
+        bytes32 currentHash;
+    }
+
+    Block[] public blockchainAI;
+    string public genesisDataAI = "Genesis Block AI";
+
+    BasicBlockchain public basicBlockchain;
+    
+    // initialized bytes32 to zero
+    bytes32 private constant NULL_HASH = 0;
+
+    constructor(address basicBlockchainAddress) {
+        basicBlockchain = BasicBlockchain(basicBlockchainAddress);
+        addBlock(genesisDataAI);
+    }
+
+    function createHash(
+        uint _index, 
+        uint _timestamp, 
+        string memory _data, 
+        bytes32 _previousHash
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_index, _timestamp, _data, _previousHash));     
+    }
+
+    function addBlock(string memory _data) public {
+        BasicBlockchain.Block memory basicBlock = basicBlockchain.blockchain(basicBlockchain.blockchain().length - 1);
+        uint _index = basicBlock.index;
+        uint _timestamp = basicBlock.timestamp;
+        bytes32 _previousHash = basicBlock.currentHash;
+
+        bytes32 _currentHash = createHash(_index, _timestamp, _data, _previousHash);
+
+        require(_currentHash == basicBlock.currentHash, "AI Chain and Basic Chain do not match");
+
+        blockchainAI.push(Block(_index, _timestamp, _data, _previousHash, _currentHash));
+    }
+    
+    function checkBlockchainIntegrity() public view returns (bool) {
+        for (uint i = 0; i < blockchainAI.length; i++) {
+            BasicBlockchain.Block memory basicBlock = basicBlockchain.blockchain(i);
+            Block memory aiBlock = blockchainAI[i];
+
+            // compare the blocks' data
+            if(keccak256(abi.encodePacked(aiBlock.data)) != keccak256(abi.encodePacked(basicBlock.data))) {
+                return false;
+            }
+
+            // compare the current block hash
+            if(aiBlock.currentHash != basicBlock.currentHash) {
+                return false;
+            }
+            
+            // compare the previous block hash
+            if(i != 0 && aiBlock.previousHash != basicBlock.previousHash) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+
+pragma solidity >=0.8.0 <0.9.0;
+
+interface ERC20Interface {
+    function transferFrom(address src, address dst, uint tokens) external returns (bool);
+    function balanceOf(address tokenOwner) external view returns (uint);
+}
+
+contract CrossPlatformPayments {
+    
+    // Function to send Ether to a specified address
+    function transferEther(address payable _to, uint _amount) public payable {
+        require(msg.value == _amount);
+        _to.transfer(_amount);
+    }
+    
+    // Function to transfer any ERC20 Token to a specified address
+    function transferERC20(address _tokenAddr, address _to, uint _amount) public returns (bool success) {
+        ERC20Interface token = ERC20Interface(_tokenAddr);
+        return token.transferFrom(msg.sender, _to, _amount);
+    }
+    
+    // Function to check the balance of any ERC20 Token for this contract
+    function getERC20Balance(address _tokenAddr, address _owner) public view returns (uint balance) {
+        ERC20Interface token = ERC20Interface(_tokenAddr);
+        return token.balanceOf(_owner);
+    }
+}
+
+
+
+
+
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.0 <0.9.0;
+
+contract BlockchainAI {
+    struct Block {
+        uint index;
+        uint timestamp;
+        string data;
+        bytes32 previousHash;
+        bytes32 currentHash;
+    }
+
+    Block[] public blockchainAI;
+    string public genesisDataAI = "Genesis Block AI";
+
+    BasicBlockchain public basicBlockchain;
+    
+    // initialized bytes32 to zero
+    bytes32 private constant NULL_HASH = 0;
+
+    constructor(address basicBlockchainAddress) {
+        basicBlockchain = BasicBlockchain(basicBlockchainAddress);
+        addBlock(genesisDataAI);
+    }
+
+    function createHash(
+        uint _index, 
+        uint _timestamp, 
+        string memory _data, 
+        bytes32 _previousHash
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_index, _timestamp, _data, _previousHash));     
+    }
+
+    function addBlock(string memory _data) public {
+        BasicBlockchain.Block memory basicBlock = basicBlockchain.blockchain(basicBlockchain.blockchain().length - 1);
+        uint _index = basicBlock.index;
+        uint _timestamp = basicBlock.timestamp;
+        bytes32 _previousHash = basicBlock.currentHash;
+
+        bytes32 _currentHash = createHash(_index, _timestamp, _data, _previousHash);
+
+        require(_currentHash == basicBlock.currentHash, "AI Chain and Basic Chain do not match");
+
+        blockchainAI.push(Block(_index, _timestamp, _data, _previousHash, _currentHash));
+    }
+    
+    function checkBlockchainIntegrity() public view returns (bool) {
+        for (uint i = 0; i < blockchainAI.length; i++) {
+            BasicBlockchain.Block memory basicBlock = basicBlockchain.blockchain(i);
+            Block memory aiBlock = blockchainAI[i];
+
+            // compare the blocks' data
+            if(keccak256(abi.encodePacked(aiBlock.data)) != keccak256(abi.encodePacked(basicBlock.data))) {
+                return false;
+            }
+
+            // compare the current block hash
+            if(aiBlock.currentHash != basicBlock.currentHash) {
+                return false;
+            }
+            
+            // compare the previous block hash
+            if(i != 0 && aiBlock.previousHash != basicBlock.previousHash) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+
+pragma solidity >=0.8.0 <0.9.0;
+
+interface ERC20Interface {
+    function transferFrom(address src, address dst, uint tokens) external returns (bool);
+    function balanceOf(address tokenOwner) external view returns (uint);
+}
+
+contract CrossPlatformPayments {
+    
+    // Function to send Ether to a specified address
+    function transferEther(address payable _to, uint _amount) public payable {
+        require(msg.value == _amount);
+        _to.transfer(_amount);
+    }
+    
+    // Function to transfer any ERC20 Token to a specified address
+    function transferERC20(address _tokenAddr, address _to, uint _amount) public returns (bool success) {
+        ERC20Interface token = ERC20Interface(_tokenAddr);
+        return token.transferFrom(msg.sender, _to, _amount);
+    }
+    
+    // Function to check the balance of any ERC20 Token for this contract
+    function getERC20Balance(address _tokenAddr, address _owner) public view returns (uint balance) {
+        ERC20Interface token = ERC20Interface(_tokenAddr);
+        return token.balanceOf(_owner);
+    }
+}
+
+
+
+//Now with account abstraction added here ;Here, I will demo an approach where I define an abstraction layer for an account structure where we have the values such as address owner, uint balance, bool isValue, etc.
+
+//Remember, in an actual scenario, you might want to define the abstraction that fits our specifications
+
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.9.0;
+
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+// Basic account structure
+struct Account {
+    address owner;
+    uint balance;
+    ERC20 token;
+    bool isValue;
+}
+
+struct Block {
+    uint index;
+    uint timestamp;
+    string data;
+    bytes32 previousHash;
+    bytes32 currentHash;
+}
+
+contract BlockchainAI is Ownable {
+    
+    using SafeMath for uint; // using SafeMath for secure mathematical operations
+
+    // Account state abstraction
+    mapping (address => Account) private accounts;
+    
+    Block[] public blockchainAI;
+    string public genesisDataAI = "Genesis Block AI";
+
+    // initialize bytes32 to zero
+    bytes32 private constant NULL_HASH = 0;
+
+    constructor() {
+        _addBlock(genesisDataAI);
+    }
+
+    function createAccount(ERC20 _token) public {
+        require(!accounts[msg.sender].isValue, "This account already exists!");
+
+        accounts[msg.sender] = Account({owner: msg.sender, balance: 0, token: _token, isValue: true});
+    }
+
+    function getAccount(address _owner) public view returns (Account memory) {
+        return accounts[_owner];
+    }
+
+    function createHash(
+        uint _index, 
+        uint _timestamp, 
+        string memory _data, 
+        bytes32 _previousHash
+    ) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_index, _timestamp, _data, _previousHash));
+    }
+    
+    function _addBlock(string memory data) private  {
+        Block memory newBlock;
+        newBlock.index = blockchainAI.length;
+        newBlock.timestamp = block.timestamp;
+        newBlock.data = data;
+        
+        if(newBlock.index != 0) {
+            newBlock.previousHash = blockchainAI[newBlock.index - 1].currentHash;
+        }
+
+        newBlock.currentHash = createHash(newBlock.index, newBlock.timestamp, newBlock.data, newBlock.previousHash);
+        blockchainAI.push(newBlock);
+    }
+
+    // more functions...
+}
+
+
+
+
+//Please note that OpenZeppelin provides many other contracts for various other advanced features, providing high-level abstractions for token (ERC20, ERC721, etc.), security (ReentrancyGuard, PullPayment, etc.), access control (AccessControl, Roles, etc.) and even lifecycle (Pausable, Destructible, etc.).
+
+//While the provided Solidity smart contract seems functional, there are several aspects we might consider as well to improve our code;
+
+//Event Logging: You might want to emit events for critical actions in the contract. Events allow you to monitor activities on the contract. This could be especially relevant for the setAccount function.
+
+//Security Practices: In the setAccount() function, anyone can create an account for any address, which they might not control. It could be more appropriately designed to have users create only their accounts.
+
+//Test Cases: Include test cases to verify the functionalities of the contract are working as expected.
+
+//Error Messages: Enhance the debugging process by using distinct error messages for each require statement.
+
+//Access Control: Define roles for admin and regular users. An admin might have additional privileges over regular users i.e., an admin might be able to pause transactions on the contract.
+
+//Use of msg.sender: You might want to use msg.sender, which is a global variable in Solidity that returns the address of the caller who invoked the current function.
+
+//Data Handling: Create more functions to handle data, like deposit and withdraw functions for account balances, functions for managing the Blocks, etc.
+
+//Gas Costs: Be mindful about storage and execution costs i.e., how you're storing data in struct and how expensive it might be to formulate and maintain that data.
+
+//Fallback functions: Does the contract need to handle payments? If yes, consider writing fallback and receive functions.
+
+
+
+
+//BlockchainAI creates a separate blockchain that mirrors an existing basic blockchain and validates that both blockchains match each other, hence preserving the integrity. *An important aspect to note from the AI perspective is the _data field in the Block struct, which could be leveraged to store AI-related data (like predictive analysis results, anomaly detection results, etc.) derived from an XGBoost or any other model.
+
+//CrossPlatformPayments is a contract focused on managing transactions. It has functions to transfer Ether and ERC20 tokens, and a function to check the balance of any ERC20 Token for any address.
+
+//When considering how XGBoost or another Machine Learning model might be worked into this structure, the model cannot directly interact with the Ethereum Blockchain due to the deterministic nature of Solidity and the Ethereum Virtual Machine. However, you might use an off-chain server based machine learning model that interacts with this smart contract. The model could make predictions and decisions as per its training and then submit these results onto the blockchain via a transaction.
+
+//For example, for anomaly detection or asset valuation, an off-chain model could process the necessary data, reach a conclusion (like "this is a fraudulent transaction" or "the predicted price of this asset is X"), and then call the addBlock function to submit this information to the blockchain.
+
+//The interaction with CrossPlatformPayments might be indirect, but XGBoost could help with features like predictive transaction fees, which could optimize the way this contract sends transactions.
+
+
+import pandas as pd
+from web3 import Web3
+from web3.auto import w3
+from eth_account import Account
+
+def create_raw_transaction(receiver, startgas, gasprice, value=0, data=b'', nonce=0):
+    return {
+        'to': receiver,
+        'value': value,
+        'gas': startgas,
+        'gasPrice': gasprice,
+        'nonce': nonce,
+        'data': data,
+    }
+
+def sign_and_send(private_key, raw_transaction):
+    signed = w3.eth.account.signTransaction(raw_transaction, private_key)
+    return w3.eth.sendRawTransaction(signed.rawTransaction)
+
+# Connect to the Ethereum blockchain
+w3 = Web3(Web3.HTTPProvider('http://localhost:8545'))
+
+# Pass the ABI and Contract Address
+abi = ""  
+contract_address = ""  
+contract = w3.eth.contract(address=contract_address, abi=abi)
+
+# Your account private key
+private_key = ""  # Your account's private key
+account_address = Account.privateKeyToAccount(private_key).address
+
+# Load and process your data here
+data = pd.read_csv('data.csv')
+
+def anomaly_detection(data):
+    return False
+
+result = anomaly_detection(data)
+
+# Interact with your contract
+gas_price = w3.eth.gasPrice  # Current gas price from the Ethereum network
+gas_limit = 100000  # Arbitrary gas limit, you may need to adjust this value depending on your contract
+
+if result:
+    txn_data = contract.functions.addBlock('This is a fraudulent transaction').buildTransaction({'gas': gas_limit})
+else:
+    txn_data = contract.functions.addBlock('No anomaly detected').buildTransaction({'gas': gas_limit})
+
+# nonce for new transaction
+nonce = w3.eth.getTransactionCount(account_address)
+txn_data['gasPrice'] = gas_price
+txn_data['nonce'] = nonce
+
+# Sign and send the transaction
+tx_hash = sign_and_send(private_key, txn_data)
+
+# Get transaction receipt to track status
+tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+
+# If transaction was successful, add additional code to handle success scenario.
+# If transaction has failed, add additional code to handle failure scenario.
+
+
+
+
+//In this code:
+
+//We establish a connection to the Ethereum network using the Web3 module.
+
+//We create a Python representation of our smart contract with the contract's ABI and address.
+
+//We load our data using pandas, and then we process the data and perform anomaly detection. Note Since it's unclear what the data you're processing looks like, a common approach is to use Scikit-learn's IsolationForest model. Here's an example of how you could adjust the code to use IsolationForest:
+//Please make sure that you have scikit-learn installed. You can install it using pip:
+
+pip install -U scikit-learn
+
+
+Then …..
+
+from sklearn.ensemble import IsolationForest
+
+# Model to use for anomaly detection
+model = IsolationForest(contamination=0.2)  # contamination is the proportion of outliers in the data set
+
+def fit_model(data):
+    global model
+    model.fit(data)
+
+def anomaly_detection(data):
+    global model
+
+    preds = model.predict(data)
+    return -1 in preds  # anomalies are denoted as -1
+
+# Load and process your data here
+data = pd.read_csv('data.csv')
+
+# Expecting 'data' to be two-dimensional. If not, adjust accordingly
+fit_model(data)
+
+result = anomaly_detection(data)
+
+//# Rest of your code remains the same..
+
+
+
+//Depending on the result of anomaly detection, we call the addBlock function of our contract with different messages.
+
+//We send the transaction and wait for it to be mined, getting a transaction receipt.
+//After this, you can add logic depending on whether the transaction was successful or not.
+
+//Remember to replace contract_address and abi with your own values. Also make sure that the transaction sender is correctly configured.
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Here are some strategies to handle gas price fluctuations to optimize transaction costs:
+
+//Off-peak Transaction Schedule: Gas prices fluctuate based on network activity. Schedule transactions during off-peak times when gas prices are typically lower. This can be automated using python schedulers or Linux cron jobs.
+
+//Gas Price Forecasting: To reduce the risk of gas price fluctuations, you can implement machine learning techniques to forecast gas prices. If higher prices are forecasted, you could avoid transaction execution during these periods.
+
+//Gas Price Oracles: Use gas price oracles that provide real-time gas price data. Take advantage of these insights to choose the best time to conduct transactions.
+
+
+from web3.middleware import geth_poa_middleware
+from web3.gas_strategies.time_based import fast_gas_price_strategy
+import schedule
+import time
+
+# Middleware
+w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+w3.eth.setGasPriceStrategy(fast_gas_price_strategy)
+
+def job():
+    # Gas Price Strategy
+    gas_price = fast_gas_price_strategy(w3, None)
+    
+    # nonce for new transaction
+    nonce = w3.eth.getTransactionCount(account_address)
+    
+    if result:
+        txn_data = contract.functions.addBlock('This is a fraudulent transaction').buildTransaction({'gas': gas_limit, 'gasPrice': gas_price, 'nonce': nonce})
+    else:
+        txn_data = contract.functions.addBlock('No anomaly detected').buildTransaction({'gas': gas_limit, 'gasPrice': gas_price, 'nonce': nonce})
+
+    # Sign and send the transaction
+    tx_hash = sign_and_send(private_key, txn_data)
+    
+    # Get transaction receipt to track status
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+
+# Schedule job
+schedule.every().day.at("01:00").do(job)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+
+//Please adjust the scheduling time in "01:00" according to our local timezone and network congestion patterns.
