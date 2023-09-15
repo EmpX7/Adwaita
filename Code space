@@ -26,7 +26,8 @@ for (uint i = 0; i < basicBlockchainLength; i++) {
 
    // Do the comparisons....
 }
-This assumes that basicBlockchain is an instance of the BasicBlockchain contract and that it exposes the mentioned getBlock and getBlockchainLength functions. Please adapt to our specific contract implementation.
+
+//This assumes that basicBlockchain is an instance of the BasicBlockchain contract and that it exposes the mentioned getBlock and getBlockchainLength functions. Please adapt to our specific contract implementation.
 
 
 // migrations/2_deploy_contract.js
