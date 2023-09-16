@@ -1,0 +1,75 @@
+npm install express body-parser ejs
+
+//node.js
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+// Serve main page
+app.get('/', (req, res) => {
+    res.render('wallet', { balance: 0 });
+});
+
+app.listen(3000, () => console.log("Server up and running on port 3000"));
+
+//Now, we need to create a view views/wallet.ejs (HTML-like content) for our main page:
+  //Below I'm adding a new section in your HTML code to display a static receiving address. Actual logic would reside in your server-side code:
+
+  <!DOCTYPE html>
+<html>
+<head>
+    <title>My Crypto Wallet</title>
+</head>
+<body>
+    <h1>Welcome to your crypto wallet</h1>
+
+    <hr />
+    <h2>Account Balance: <%= balance %> BTC</h2> <!-- replace balance with real data -->
+    <hr />
+
+    <form action="/send" method="POST">
+        <label for="address">Address</label>
+        <input type="text" id="address" name="address">
+        <label for="amount">Amount</label>
+        <input type="number" id="amount" name="amount" min="0">
+        <button type="submit">Send</button>
+    </form>
+
+    <hr />
+    <h3>Your Receiving Address</h3>
+    <p id="receiveAddress"><%= receiveAddress %></p> <!-- replace receiveAddress with real data -->
+
+</body>
+</html>
+
+  //This JavaScript code, specifically the loadBlockchainData() function, first creates a new provider instance according to the Ethereum object provided by MetaMask. Then, it retrieves the signer object representing the Ethereum account that Metamask is currently managing. By calling getAddress() on the signer object, we retrieve the Ethereum account's address. The latter part of the function is to demonstrate how you might interact with a specific contract; you should replace "0xYourContractAddress" with your contract's actual address and replace contractABI with your contract's actual ABI.
+//Please note that you should have metamask extension installed and connected to an Ethereum account because the window.ethereum object, that we are using here, is injected by metamask into the Javascript context.
+
+  <script>
+    async function loadBlockchainData() {
+        // Connect to the network
+        let provider = new ethers.providers.Web3Provider(window.ethereum);
+
+        // Get the signer from Metamask extension
+        const signer = provider.getSigner();
+ 
+        // Get the current address
+        const account = await signer.getAddress();
+        console.log('Account:', account);
+
+        // Define a contract
+        const contractAddress = "0xYourContractAddress";
+        const contractABI = [];  // Put your contract's ABI here
+
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        console.log(contract);
+    }
+</script>
+
+
+
+
